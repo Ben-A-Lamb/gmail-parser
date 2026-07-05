@@ -7,6 +7,7 @@ import socket
 import webbrowser
 from email.header import decode_header
 from email.message import Message
+from email.utils import parsedate_to_datetime
 
 try:
     from dotenv import load_dotenv
@@ -75,7 +76,19 @@ def save_attachment(part: Message, folder: str) -> None:
 def process_message(msg: Message, index: int, args: argparse.Namespace) -> None:
     subject = decode_mime_header(msg.get("Subject"), "(No Subject)")
     sender = decode_mime_header(msg.get("From"), "(Unknown Sender)")
-    email_folder = os.path.join("mail", clean(f"{index}_{subject}"))
+    
+    # Extract and format email date
+    date_header = msg.get("Date")
+    if date_header:
+        try:
+            dt = parsedate_to_datetime(date_header)
+            date_str = dt.strftime("%Y-%m-%d")
+        except (TypeError, ValueError):
+            date_str = "unknown-date"
+    else:
+        date_str = "unknown-date"
+    
+    email_folder = os.path.join("mail", clean(f"{date_str}_{subject}"))
     html_body = ""
 
     print(f"Subject: {subject}")
@@ -122,7 +135,7 @@ def process_message(msg: Message, index: int, args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch and parse recent emails over IMAP.")
-    parser.add_argument("--imap-server", default="imap.gmail.com", help="IMAP server hostname")
+    parser.add_argument("--imap-server", default=os.getenv("IMAP_SERVER"), help="IMAP server hostname")
     parser.add_argument("--mailbox", default="INBOX", help="Mailbox name to read")
     parser.add_argument("--limit", type=int, default=3, help="Number of newest emails to fetch")
     parser.add_argument(
