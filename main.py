@@ -58,7 +58,9 @@ def ensure_folder(path: str) -> None:
 
 def save_attachment(part: Message, folder: str) -> None:
     filename = decode_mime_header(part.get_filename(), "attachment.bin")
-    safe_name = clean(os.path.basename(filename))
+    basename = os.path.basename(filename)
+    stem, ext = os.path.splitext(basename)
+    safe_name = clean(stem) + ext
     data = part.get_payload(decode=True)
     if not data:
         return
@@ -73,7 +75,7 @@ def save_attachment(part: Message, folder: str) -> None:
 def process_message(msg: Message, index: int, args: argparse.Namespace) -> None:
     subject = decode_mime_header(msg.get("Subject"), "(No Subject)")
     sender = decode_mime_header(msg.get("From"), "(Unknown Sender)")
-    email_folder = clean(f"{index}_{subject}")
+    email_folder = os.path.join("mail", clean(f"{index}_{subject}"))
     html_body = ""
 
     print(f"Subject: {subject}")
